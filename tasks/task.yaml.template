@@ -1,0 +1,7 @@
+container:
+  image: <docker_image_name_here>
+  tag: ${tag}
+  env:
+    NODE: TEST
+#  expose:
+#    - 1080:1080
