@@ -180,8 +180,8 @@ tasks_monitor() { # dealid #taskid
 			if [ "$time" -gt "$eta" ]; 
 			then
 				echo "$(datelog)" "Task $taskid on deal $dealid (Node $node_num) is finished. Uptime is $time seconds"
-				echo "$(datelog)" "Task $ftaskid on deal $dealid (Node $node_num) success. Fetching log, shutting down node..."
-				retry "$sonmcli" task logs "$dealid" "$ftaskid" > $tag_$node_num.log
+				echo "$(datelog)" "Task $taskid on deal $dealid (Node $node_num) success. Fetching log, shutting down node..."
+				retry "$sonmcli" task logs "$dealid" "$taskid" > $tag_$node_num.log
 				echo "$(datelog)" "Closing deal $dealid..."
 				retry closeDeal $dealid
 			else
