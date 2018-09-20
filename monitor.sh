@@ -110,7 +110,7 @@ blacklist() { # dealid #file
 		retry sonmcli deal close $1 --blacklist worker
 		echo "$(datelog)" "Node $node_num failure, new order will be created..."
 		ntag="$tag_$(($node_num))"
-		bidfile= "orders/$ntag.yaml"
+		bidfile= "out/orders/$ntag.yaml"
 		order=$("$sonmcli" order create $bidfile --out json | jq '.id' | sed -e 's/"//g')
 		echo "$(datelog)" "Order for Node $node_num is $order"
 				
@@ -156,7 +156,7 @@ deal_mon() {
 				echo "Starting task on node $node_num..."
 				tag="loh"
 				ntag="loh_$(($node_num))"
-				taskfile="./tasks/$ntag.yaml"
+				taskfile="./out/tasks/$ntag.yaml"
 				retry startTaskOnDeal $dealid $taskfile
 				watch			
 			fi

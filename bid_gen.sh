@@ -88,7 +88,7 @@ generateBidFile() { # tag ramsize storagesize cpucores sysbenchsingle sysbenchmu
 	if [ ! -z ${16} ] ; then
 		identity=${16}
 	fi
-	if [ -f "orders/bid.yaml.template" ]; then
+	if [ -f "bid.yaml.template" ]; then
 		sed -e "s/\${tag}/$ntag/" \
 			-e "s/\${ramsize}/$ramsize/" \
 			-e "s/\${storagesize}/$storagesize/" \
@@ -105,17 +105,17 @@ generateBidFile() { # tag ramsize storagesize cpucores sysbenchsingle sysbenchmu
 			-e "s/\${overlay}/$overlay/" \
 			-e "s/\${incoming}/$incoming/" \
 			-e "s/\${identity}/$identity/" \
-orders/bid.yaml.template >orders/$ntag.yaml && echo "orders/$ntag.yaml"
-		sed -i "s|counterparty: error||g" orders/$ntag.yaml
+out/orders/bid.yaml.template >out/orders/$ntag.yaml && echo "out/orders/$ntag.yaml"
+		sed -i "s|counterparty: error||g" out/orders/$ntag.yaml
 	fi
 }
 
 task_gen() { #tag
 	ntag=$1
 	if [ -f "tasks/task.yaml.template" ]; then
-		cp tasks/task.yaml.template tasks/$ntag.yaml
-		sed -i "s/\${tag}/$ntag/g" tasks/$ntag.yaml
-		sed -i "s/\${env_tag}/$ntag/g" tasks/$ntag.yaml
+		cp task.yaml.template out/tasks/$ntag.yaml
+		sed -i "s/\${tag}/$ntag/g" out/tasks/$ntag.yaml
+		sed -i "s/\${env_tag}/$ntag/g" out/tasks/$ntag.yaml
 		
 	fi
 }
