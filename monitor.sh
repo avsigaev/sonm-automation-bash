@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 
 eta=20
-tag="loh"
-
 
 set_sonmcli() {
 	if [ -f "./sonmcli" ]; then
@@ -54,7 +52,7 @@ init() {
 	set_sonmcli
 	check_installed
 	load_cfg
-	load_generator
+	#load_generator
 }
 
 datelog() {
@@ -101,7 +99,7 @@ getOrders() {
 }
 
 resolve_node_num(){ #deal_id
-	sonmcli deal status 7975 --expand --out json | jq '.bid.tag' | tr -d '"' | base64 --decode | tr -d '\0' >num.txt
+	sonmcli deal status $1 --expand --out json | jq '.bid.tag' | tr -d '"' | base64 --decode | tr -d '\0' >num.txt
 	node_num=$( cat num.txt | grep -o '[0-9]*' )
 	rm num.txt
 }
@@ -111,18 +109,20 @@ blacklist() { # dealid #file
 		resolve_node_num
 		retry sonmcli deal close $1 --blacklist worker
 		echo "$(datelog)" "Node $node_num failure, new order will be created..."
-		bidfile= "orders/$tag_$node_num.yaml"
+		ntag="$tag_$(($node_num))"
+		bidfile= "orders/$ntag.yaml"
 		order=$("$sonmcli" order create $bidfile --out json | jq '.id' | sed -e 's/"//g')
 		echo "$(datelog)" "Order for Node $node_num is $order"
 				
 }
 
 startTaskOnDeal() { # dealid filename
-	check=$( retry "$sonmcli" task start $1 $2 --out json | jq '.id' | sed -e 's/"//g' | grep -o '[0-9]*' )
-	if [ "$check" == null ]; 
-		then			
-			blacklist $1 
-	fi
+	"$sonmcli" task start $1 $2 --out json #| jq '.id' | sed -e 's/"//g' | grep -o '[0-9]*'
+	
+	#if [ ! -z "$check" ]; 
+	#	then			
+	#		blacklist $1 
+	#fi
 }
 
 closeDeal() {
@@ -147,15 +147,17 @@ deal_mon() {
 			dealid=$x
 			resolve_node_num $dealid
 			echo "$(datelog)" "Checking Deal $dealid - Node $node_num"
-			tasks=$(retry "$sonmcli" task list $dealid --out=json)
-			if [ "$tasks" != "null" ]; 
+			tasks=$(retry "$sonmcli" task list $dealid | grep "No active tasks" )
+			if [ -z "$tasks" ]; 
 			then
 				taskid=$($sonmcli task list $dealid --out json | jq 'to_entries[] | '.key'' |tr -d '"')
 				tasks_monitor $dealid $taskid
 			else
 				echo "Starting task on node $node_num..."
-				ntag="$tag_$(($node_num))"
-				retry startTaskOnDeal $dealid tasks/$ntag.yaml
+				tag="loh"
+				ntag="loh_$(($node_num))"
+				taskfile="./tasks/$ntag.yaml"
+				retry startTaskOnDeal $dealid $taskfile
 				watch			
 			fi
 		done

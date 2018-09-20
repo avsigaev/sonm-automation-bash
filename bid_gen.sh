@@ -116,7 +116,6 @@ task_gen() { #tag
 		cp tasks/task.yaml.template tasks/$ntag.yaml
 		sed -i "s/\${tag}/$ntag/g" tasks/$ntag.yaml
 		sed -i "s/\${env_tag}/$ntag/g" tasks/$ntag.yaml
-		cat tasks/$ntag.yaml
 		
 	fi
 }
