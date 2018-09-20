@@ -52,7 +52,7 @@ init() {
 	set_sonmcli
 	check_installed
 	load_cfg
-	#load_generator
+	load_generator
 }
 
 datelog() {
