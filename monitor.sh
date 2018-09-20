@@ -175,12 +175,12 @@ deal_mon() {
 			resolve_node_num $dealid
 			resolve_ntag $dealid
 			echo "$(datelog)" "Checking Deal $dealid - Node $node_num"
-			tasks=$(retry "$sonmcli" task list $dealid | grep "No active tasks" )
+			tasks=$(retry "$sonmcli" task list $dealid --timeout=2m | grep "No active tasks" )
 			if [ -z "$tasks" ]; 
 
 			then
-				taskid=$( retry $sonmcli task list $dealid --out json | jq 'to_entries[] | '.key'' |tr -d '"')
-				status=$(sonmcli task status $dealid $taskid --out json | jq '.status' | tr -d '"')
+				taskid=$( $sonmcli task list $dealid --timeout=2m --out json | jq 'to_entries[] | '.key'' |tr -d '"')
+				status=$( sonmcli task status $dealid $taskid --timeout=2m --out json | jq '.status' | tr -d '"')
 				resolve_node_num $dealid
 				case $status in
 					SPOOLING)

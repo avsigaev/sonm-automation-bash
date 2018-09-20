@@ -1,6 +1,7 @@
 #cluster settings
 	numberofnodes="3" # cluster size
 	tag="bshtst" #cluster name, bid's and tasks will use it
+	eta=20 # Task estimated time of arrival, sec 
 
 #counterparty settings
 	counterparty="" # optional, sets counterparty for orders to take, must be HEX(40) string. Will be removed automatically in case of error/not set
@@ -24,4 +25,5 @@
 	gpucount="0" #number of units
 	gpumem="15" # GPU unit RAM,Gb, integers only
 	ethhashrate="1" # MH/s, integers only
+
 
