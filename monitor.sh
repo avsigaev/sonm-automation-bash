@@ -47,8 +47,8 @@ load_generator() {
 }
 
 init() {
-	mkdir ./out/orders
-	mkdir ./out/tasks
+	mkdir -p ./out/orders
+	mkdir -p ./out/tasks
 	chmod -R 777 ./out/orders
 	chmod -R 777 ./out/orders
 	set_sonmcli
