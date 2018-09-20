@@ -2,4 +2,4 @@ container:
   image: sonm/cpu-sysbench@sha256:8eeb78e04954c07b2f72f9311ac2f7eb194456a4af77b2c883f99f8949701924
   tag: loh_1
   env:
-    NODE: 1
+    NODE: loh_1

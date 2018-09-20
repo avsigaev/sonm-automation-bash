@@ -1,0 +1,4 @@
+[ERR] failed to read logs: rpc error: code = Unknown desc = failure during receiving logs from worker: rpc error: code = NotFound desc = task  not found
+[ERR] failed to read logs: rpc error: code = Unknown desc = failure during receiving logs from worker: rpc error: code = NotFound desc = task  not found
+[ERR] failed to read logs: rpc error: code = Unknown desc = failure during receiving logs from worker: rpc error: code = NotFound desc = task  not found
+2018-09-20 14:24:22 sonmcli task logs 8063  command has failed after 3 attempts.

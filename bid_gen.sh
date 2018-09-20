@@ -15,6 +15,7 @@ validate() { #validate counterparty address via regexp
 
 createOrders() { # tag numberoforders ramsize storagesize cpucores sysbenchsingle sysbenchmulti netdownload netupload price
 	if [ $# == 17 ]; then
+		tag=$1
 		numberoforders=$2
 		ramsize=$3
 		storagesize=$4
@@ -38,13 +39,13 @@ createOrders() { # tag numberoforders ramsize storagesize cpucores sysbenchsingl
 		fi	
 		for ((number=1;  number <= numberoforders ; number++))
 		do
-			tag="$1_$(($number))"
-			bidfile=$(generateBidFile $tag $ramsize $storagesize $cpucores $sysbenchsingle $sysbenchmulti $netdownload $netupload $price $counterparty $gpucount $gpumem $ethhashrate $overlay $incoming $identity)
+			ntag="$1_$(($number))"
+			bidfile=$(generateBidFile $ntag $ramsize $storagesize $cpucores $sysbenchsingle $sysbenchmulti $netdownload $netupload $price $counterparty $gpucount $gpumem $ethhashrate $overlay $incoming $identity)
 			echo "$(datelog)" "Creating order for Node number $number"
-			orderArr[$number]=$("$sonmcli" order create $bidfile --out json | jq '.id' | sed -e 's/"//g')
-			nodesArr[$number]=false
+			order=$("$sonmcli" order create $bidfile --out json | jq '.id' | sed -e 's/"//g')
+			echo "$(datelog)" "Order for Node $node_num is $order"
 			echo "$(datelog)" "Creating task file for Node number $number"
-			task_gen $tag $number
+			task_gen $ntag 
 		done 
 	else
 		return 1
@@ -54,7 +55,7 @@ createOrders() { # tag numberoforders ramsize storagesize cpucores sysbenchsingl
 
 generateBidFile() { # tag ramsize storagesize cpucores sysbenchsingle sysbenchmulti netdownload netupload price
 	if [ ! -z $1 ]; then
-		tag=$1
+		ntag=$1
 	fi
 	if [ ! -z $2 ]; then
 		ramsize=$(($2 * 1024 * 1024))
@@ -88,7 +89,7 @@ generateBidFile() { # tag ramsize storagesize cpucores sysbenchsingle sysbenchmu
 		identity=${16}
 	fi
 	if [ -f "orders/bid.yaml.template" ]; then
-		sed -e "s/\${tag}/$tag/" \
+		sed -e "s/\${tag}/$ntag/" \
 			-e "s/\${ramsize}/$ramsize/" \
 			-e "s/\${storagesize}/$storagesize/" \
 			-e "s/\${cpucores}/$cpucores/" \
@@ -104,19 +105,18 @@ generateBidFile() { # tag ramsize storagesize cpucores sysbenchsingle sysbenchmu
 			-e "s/\${overlay}/$overlay/" \
 			-e "s/\${incoming}/$incoming/" \
 			-e "s/\${identity}/$identity/" \
-orders/bid.yaml.template >orders/$tag.yaml && echo "orders/$tag.yaml"
-		sed -i "s|counterparty: error||g" orders/$tag.yaml
+orders/bid.yaml.template >orders/$ntag.yaml && echo "orders/$ntag.yaml"
+		sed -i "s|counterparty: error||g" orders/$ntag.yaml
 	fi
 }
 
 task_gen() { #tag
-	tag=$1
-	number=$2
+	ntag=$1
 	if [ -f "tasks/task.yaml.template" ]; then
-		cp tasks/task.yaml.template tasks/$tag.yaml
-		sed -i "s/\${tag}/$tag/g" tasks/$tag.yaml
-		sed -i "s/\${env_tag}/$number/g" tasks/$tag.yaml
-		cat tasks/$tag.yaml
+		cp tasks/task.yaml.template tasks/$ntag.yaml
+		sed -i "s/\${tag}/$ntag/g" tasks/$ntag.yaml
+		sed -i "s/\${env_tag}/$ntag/g" tasks/$ntag.yaml
+		cat tasks/$ntag.yaml
 		
 	fi
 }
@@ -126,4 +126,4 @@ if [ ! -z "counterparty" ]; then
 fi
 
 createOrders $tag $numberoforders $ramsize $storagesize $cpucores $sysbenchsingle $sysbenchmulti $netdownload $netupload $price $counterparty $gpucount $gpumem $ethhashrate $overlay $incoming $identity
-tag_length=$(expr length "$tag")
+
