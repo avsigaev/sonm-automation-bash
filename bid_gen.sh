@@ -112,7 +112,7 @@ bid.yaml.template >out/orders/$ntag.yaml && echo "out/orders/$ntag.yaml"
 
 task_gen() { #tag
 	ntag=$1
-	if [ -f "tasks/task.yaml.template" ]; then
+	if [ -f "task.yaml.template" ]; then
 		cp task.yaml.template out/tasks/$ntag.yaml
 		sed -i "s/\${tag}/$ntag/g" out/tasks/$ntag.yaml
 		sed -i "s/\${env_tag}/$ntag/g" out/tasks/$ntag.yaml

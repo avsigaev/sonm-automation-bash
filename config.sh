@@ -1,6 +1,6 @@
 #cluster settings
 	numberofnodes="3" # cluster size
-	tag="loh" #cluster name, bid's and tasks will use it
+	tag="bshtst" #cluster name, bid's and tasks will use it
 
 #counterparty settings
 	counterparty="" # optional, sets counterparty for orders to take, must be HEX(40) string. Will be removed automatically in case of error/not set
