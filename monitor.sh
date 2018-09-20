@@ -107,7 +107,7 @@ resolve_node_num(){ #deal_id
 resolve_ntag(){ #deal_id
 
 	retry sonmcli deal status $1 --expand --out json | jq '.bid.tag' | tr -d '"' | base64 --decode | tr -d '\0' > num.txt
-	ntag=$( cat num.txt 
+	ntag=$( cat num.txt )  
 	echo "$ntag"
 	rm num.txt
 }
