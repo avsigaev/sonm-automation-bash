@@ -104,6 +104,13 @@ resolve_node_num(){ #deal_id
 	rm num.txt
 }
 
+resolve_node_tag(){ #deal_id
+
+	sonmcli deal status $1 --expand --out json | jq '.bid.tag' | tr -d '"' | base64 --decode | tr -d '\0' >num.txt
+	node_num=$( cat num.txt )
+	rm num.txt
+}
+
 blacklist() { # dealid #file
 		echo "$(datelog)" "Failed to start task on deal $1 and blacklisting counterparty worker's address..."
 		resolve_node_num
@@ -117,12 +124,12 @@ blacklist() { # dealid #file
 }
 
 startTaskOnDeal() { # dealid filename
-	"$sonmcli" task start $1 $2 --out json #| jq '.id' | sed -e 's/"//g' | grep -o '[0-9]*'
+	check=$(retry "$sonmcli" task start $1 $2 --out json | jq '.id' | sed -e 's/"//g' | grep -o '[0-9]*')
 	
-	#if [ ! -z "$check" ]; 
-	#	then			
-	#		blacklist $1 
-	#fi
+	if [ -z "$check" ]; 
+		then			
+			blacklist $1 
+	fi
 }
 
 closeDeal() {
@@ -141,6 +148,19 @@ get_time() { #dealid taskid
 }
 
 
+check_deals() {
+	ch_d=$("$sonmcli" deal list | grep "No deals found")
+	ch_o=$("$sonmcli" order list | grep "No orders found")
+	if [ ! -z "$ch_o" ] && [ ! -z "$ch_d" ]
+	then
+		echo "$(datelog)" "Cluster finished all tasks"
+		exit
+	else
+		deal_mon
+	fi
+}
+
+
 deal_mon() { 
 	for x in $("$sonmcli" deal list --out json | jq -r '.deals[].id' | sort -u); 
 		do
@@ -154,8 +174,7 @@ deal_mon() {
 				tasks_monitor $dealid $taskid
 			else
 				echo "Starting task on node $node_num..."
-				tag="loh"
-				ntag="loh_$(($node_num))"
+				ntag=
 				taskfile="./out/tasks/$ntag.yaml"
 				retry startTaskOnDeal $dealid $taskfile
 				watch			
@@ -289,9 +308,7 @@ usage() {
 
 watch() {
 	echo "$(datelog)" "Watching cluster..."
-	#local deal_check=$("$sonmcli" deal list --out json | jq -r '.deals[].id')
-	#local order_check=$("$sonmcli" order list --out json | jq -r '.deals[].id')
-	deal_mon	
+	check_deals	
 }
 
 while [ "$1" != "" ]; do
