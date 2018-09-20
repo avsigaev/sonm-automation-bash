@@ -105,7 +105,7 @@ generateBidFile() { # tag ramsize storagesize cpucores sysbenchsingle sysbenchmu
 			-e "s/\${overlay}/$overlay/" \
 			-e "s/\${incoming}/$incoming/" \
 			-e "s/\${identity}/$identity/" \
-out/orders/bid.yaml.template >out/orders/$ntag.yaml && echo "out/orders/$ntag.yaml"
+bid.yaml.template >out/orders/$ntag.yaml && echo "out/orders/$ntag.yaml"
 		sed -i "s|counterparty: error||g" out/orders/$ntag.yaml
 	fi
 }
