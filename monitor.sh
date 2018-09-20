@@ -104,10 +104,11 @@ resolve_node_num(){ #deal_id
 	rm num.txt
 }
 
-resolve_node_tag(){ #deal_id
+resolve_ntag(){ #deal_id
 
-	sonmcli deal status $1 --expand --out json | jq '.bid.tag' | tr -d '"' | base64 --decode | tr -d '\0' >num.txt
-	node_num=$( cat num.txt )
+	retry sonmcli deal status $1 --expand --out json | jq '.bid.tag' | tr -d '"' | base64 --decode | tr -d '\0' > num.txt
+	ntag=$( cat num.txt 
+	echo "$ntag"
 	rm num.txt
 }
 
@@ -116,7 +117,7 @@ blacklist() { # dealid #file
 		resolve_node_num
 		retry sonmcli deal close $1 --blacklist worker
 		echo "$(datelog)" "Node $node_num failure, new order will be created..."
-		ntag="$tag_$(($node_num))"
+		resolve_ntag $1
 		bidfile= "out/orders/$ntag.yaml"
 		order=$("$sonmcli" order create $bidfile --out json | jq '.id' | sed -e 's/"//g')
 		echo "$(datelog)" "Order for Node $node_num is $order"
@@ -151,11 +152,17 @@ get_time() { #dealid taskid
 check_deals() {
 	ch_d=$("$sonmcli" deal list | grep "No deals found")
 	ch_o=$("$sonmcli" order list | grep "No orders found")
-	if [ ! -z "$ch_o" ] && [ ! -z "$ch_d" ]
+	if [ ! -z "$ch_o" ] && [ ! -z "$ch_d" ];
 	then
 		echo "$(datelog)" "Cluster finished all tasks"
 		exit
-	else
+
+	fi
+	if [ ! -z "$ch_d" ] && [ -z "$ch_o" ]; then
+		echo "$(datelog)" "Waiting for deals..."
+			watch
+	fi
+	if [ -z "$ch_d" ]; then
 		deal_mon
 	fi
 }
@@ -166,52 +173,47 @@ deal_mon() {
 		do
 			dealid=$x
 			resolve_node_num $dealid
+			resolve_ntag $dealid
 			echo "$(datelog)" "Checking Deal $dealid - Node $node_num"
 			tasks=$(retry "$sonmcli" task list $dealid | grep "No active tasks" )
 			if [ -z "$tasks" ]; 
+
 			then
-				taskid=$($sonmcli task list $dealid --out json | jq 'to_entries[] | '.key'' |tr -d '"')
-				tasks_monitor $dealid $taskid
+				taskid=$( retry $sonmcli task list $dealid --out json | jq 'to_entries[] | '.key'' |tr -d '"')
+				status=$(sonmcli task status $dealid $taskid --out json | jq '.status' | tr -d '"')
+				resolve_node_num $dealid
+				case $status in
+					SPOOLING)
+						echo "$(datelog)" "Task $taskid on deal $dealid (Node $node_num) is uploading..."
+					;;
+					RUNNING)
+						get_time $dealid $taskid
+						echo "$(datelog)" "Task $taskid on deal $dealid (Node $node_num) is running. Uptime is $time seconds"
+					;;
+					BROKEN)
+						get_time $dealid $taskid
+						if [ "$time" -gt "$eta" ]; 
+						then
+							echo "$(datelog)" "Task $taskid on deal $dealid (Node $node_num) is finished. Uptime is $time seconds"
+							echo "$(datelog)" "Task $taskid on deal $dealid (Node $node_num) success. Fetching log, shutting down node..."
+							retry "$sonmcli" task logs "$dealid" "$taskid" > $ntag.log
+							echo "$(datelog)" "Closing deal $dealid..."
+							retry closeDeal $dealid
+						else
+							blacklist $dealid
+						fi
+					;;
+				esac
 			else
 				echo "Starting task on node $node_num..."
-				ntag=
-				taskfile="./out/tasks/$ntag.yaml"
-				retry startTaskOnDeal $dealid $taskfile
-				watch			
+				taskfile="out/tasks/$ntag.yaml"
+				retry startTaskOnDeal $dealid $taskfile		
 			fi
 		done
 	watch		
 }
 
-tasks_monitor() { # dealid #taskid
-	dealid=$1
-	taskid=$2
-	status=$(sonmcli task status $dealid $taskid --out json | jq '.status' | tr -d '"')
-	resolve_node_num $dealid
-	case $status in
-		SPOOLING)
-			echo "$(datelog)" "Task $taskid on deal $dealid (Node $node_num) is uploading..."
-		;;
-		RUNNING)
-			get_time $dealid $taskid
-			echo "$(datelog)" "Task $taskid on deal $dealid (Node $node_num) is running. Uptime is $time seconds"
-		;;
-		BROKEN)
-			get_time $dealid $taskid
-			if [ "$time" -gt "$eta" ]; 
-			then
-				echo "$(datelog)" "Task $taskid on deal $dealid (Node $node_num) is finished. Uptime is $time seconds"
-				echo "$(datelog)" "Task $taskid on deal $dealid (Node $node_num) success. Fetching log, shutting down node..."
-				retry "$sonmcli" task logs "$dealid" "$taskid" > out/$tag_$node_num.log
-				echo "$(datelog)" "Closing deal $dealid..."
-				retry closeDeal $dealid
-			else
-				blacklist $dealid
-			fi
-		;;
-	esac
-	deal_mon
-}
+
 
 valid_ip() {
 	local ip=$1
