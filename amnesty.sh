@@ -6,20 +6,18 @@ set_sonmcli() {
 	fi
 }
 
-
 amnesty() {
-	addrs=$($sonmcli blacklist list --out=json | jq '.addresses' | tr -d '"[],\0') 
-
-	if [ $addrs != "null" ]; then
-			echo 'Blaclisted suppliers: ' $addrs
-
-			for i in $addrs
-			do  
-			$sonmcli blacklist remove $i && echo $i
-			done
-
-		else echo 'Blacklist is clean'
-
+	local blacklist=$($sonmcli blacklist list  --out=json | jq '.addresses' | tr -d '"[],\0' | grep -v null) 
+	if [ -z "$blacklist" ]; then
+			echo 'Blacklist is clean.'
+		else
+			echo 'Blacklisted suppliers:' 
+			for i in "${blacklist[*]}"; do  					
+					echo $i && echo ""
+				done
+			for i in $blacklist; do  					
+					$sonmcli blacklist remove $i && echo $i "succesfully released from blacklist."
+				done			
 	fi
 }
 
