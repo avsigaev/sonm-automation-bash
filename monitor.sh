@@ -198,7 +198,7 @@ deal_mon() {
 						get_time $dealid $taskid
 						echo "$(datelog)" "Task $taskid on deal $dealid (Node $node_num) is running. Uptime is $time seconds"
 					;;
-					BROKEN)
+					BROKEN|FINISHED)
 						get_time $dealid $taskid
 						if [ "$time" -gt "$eta" ]; 
 						then
