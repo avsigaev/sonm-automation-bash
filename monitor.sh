@@ -47,10 +47,16 @@ load_generator() {
 }
 
 init() {
-	mkdir -p ./out/orders
-	mkdir -p ./out/tasks
-	chmod -R 777 ./out/orders
-	chmod -R 777 ./out/orders
+	if [ -d ./out/orders ]; then 
+		echo 'Folder .out/orders already exists'
+	else mkdir -p ./out/orders
+		chmod -R 777 ./out/orders
+	fi
+	if [ -d ./out/tasks ]; then 
+		echo 'Folder .out/tasks already exists'
+	else mkdir -p ./out/tasks
+		chmod -R 777 ./out/tasks
+	fi
 	set_sonmcli
 	check_installed
 	load_cfg
