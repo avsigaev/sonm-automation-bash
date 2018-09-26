@@ -23,7 +23,7 @@
 
 #gpu config (optional). If not required, set gpucount="0"
 	gpucount="0" #number of units
-	gpumem="15" # GPU unit RAM,Gb, integers only
-	ethhashrate="1" # MH/s, integers only
+	gpumem="3000" # GPU unit RAM,MB, integers only
+	ethhashrate="0" # MH/s, integers only
 
 
