@@ -38,6 +38,13 @@ load_cfg() {
 	fi
 }
 
+set_state()
+{
+	for (( i = 0; i < numberofnodes; i++ )); do
+		state[$i]=0
+	done
+}
+
 load_generator() {
 	if [ -f "bid_gen.sh" ]; then
 		. bid_gen.sh
@@ -57,10 +64,11 @@ init() {
 	else mkdir -p ./out/tasks
 		chmod -R 777 ./out/tasks
 	fi
+
+	load_cfg
+	set_state
 	set_sonmcli
 	check_installed
-	load_cfg
-	load_generator
 }
 
 datelog() {
@@ -72,7 +80,7 @@ retry() {
 	local max=3
 	local delay=5
 	while true; do
-		"$@" && break || {
+		"$@" && continue 3 || {
 			if [[ $n -lt $max ]]; then
 				((n++))
 				sleep $delay
@@ -84,18 +92,122 @@ retry() {
 	done
 }
 
-getDeals() {
-	if dealsJson=$(retry "$sonmcli" deal list --out=json); then
-		if [ "$(jq '.deals' <<<$dealsJson)" != "null" ]; then
+resolve_node_num(){ #deal_id
+	$sonmcli deal status $1 --expand --out json | jq '.bid.tag' | tr -d '"' | base64 --decode | tr -d '\0' >num.txt
+	node_num=$( cat num.txt | grep -o '[0-9]*' )
+	rm num.txt
+}
 
-			jq -r '.deals[].id' <<<$dealsJson | tr ' ' '\n' | sort -u | tr '\n' ' '
+resolve_ntag(){ #deal_id
 
+	$sonmcli deal status $1 --expand --out json | jq '.bid.tag' | tr -d '"' | base64 --decode | tr -d '\0' > num.txt
+	ntag=$( cat num.txt )  
+	
+	rm num.txt
+}
+
+check_state()
+{
+	state[0]=1
+		s=$( echo "${state[@]}"| grep 0 )
+		if [[  -n "$s" ]]; then
+			check_orders	
+		else	
+			echo "$(datelog)" "All tasks are finished"
+			exit
 		fi
-	else
-		return 1
+}
+
+check_orders()
+{
+	local ch_o=$($sonmcli order list --timeout=2m --out json | grep -o '[0-9]*')
+	local ch_d=$($sonmcli deal list --timeout=2m --out json | grep -o '[0-9]*')
+	if [[ "$ch_o" != "" ]]; then
+		echo "$(datelog)" "Waiting for deals..."
+		sleep 10
+	elif [[ "$ch_d" = "" ]]; then
+		echo "$(datelog)" "No deals or orders found. Creating new orders..."
+		load_generator	
 	fi
 }
 
+get_deals()
+{
+	local ch_d=$($sonmcli deal list --timeout=2m --out json | grep -o '[0-9]*')
+	if [[ "$ch_d" != "" ]]; then
+		i=1
+		for x in $("$sonmcli" deal list --out json | jq -r '.deals[].id' | sort -u);
+			do
+				dealArr+=($x)
+			done
+	else
+		check_state	
+	fi	
+
+}
+
+task_manager() #deal_id #task_id
+{
+	deal_id=$1 
+	task_id=$2
+	status=$( $sonmcli task status $deal_id $task_id --timeout=2m --out json | jq '.status' | tr -d '"')
+	resolve_node_num $deal_id
+	resolve_ntag $deal_id
+	case $status in
+		SPOOLING)
+			echo "$(datelog)" "Task $task_id on deal $deal_id (Node $node_num) is uploading..."
+			;;
+		RUNNING)
+			get_time $deal_id $task_id
+			echo "$(datelog)" "Task $task_id on deal $deal_id (Node $node_num) is running. Uptime is $time seconds"
+			;;
+		BROKEN|FINISHED)
+			get_time $deal_id $task_id
+				if [ "$time" -gt "$eta" ]; 
+					then
+						echo "$(datelog)" "Task $task_id on deal $deal_id (Node $node_num) is finished. Uptime is $time seconds"
+						echo "$(datelog)" "Task $task_id on deal $deal_id (Node $node_num) success. Fetching log, shutting down node..."
+						"$sonmcli" task logs "$deal_id" "$task_id" > out/$ntag.log
+						echo "$(datelog)" "Closing deal $deal_id..."
+						retry closeDeal $deal_id
+						state[$node_num]="1"
+						sleep 10
+					else
+						blacklist $deal_id
+				fi
+			;;
+		esac
+}
+
+
+task_valid() #deal_id 
+{
+	deal_id=$1
+	resolve_node_num $deal_id
+	resolve_ntag $deal_id
+	ch_d=$($sonmcli task list $deal_id --timeout=2m --out json | grep -o '[0-9]*')
+	if [[ "$ch_d" != "" ]]; then
+			task_id=$( $sonmcli task list $deal_id --timeout=2m --out json | jq 'to_entries[] | '.key'' |tr -d '"')
+			task_manager  $deal_id $task_id	
+	else
+			echo "$(datelog)" "Starting task on node $node_num..."
+			task_file="out/tasks/$ntag.yaml"
+			retry startTaskOnDeal $deal_id $task_file
+	fi		
+}
+
+deal_manager()
+{
+	num="0"
+	get_deals
+	for deal_id in "${dealArr[@]}";
+		do
+			unset 'dealArr[$num]'
+			num=$(($num+1))
+			task_valid $deal_id
+		done
+	deal_manager
+}
 getOrders() {
 	if ordersJson=$(retry "$sonmcli" order list --out=json); then
 		if [ "$(jq '.orders' <<<$ordersJson)" != "null" ]; then
@@ -104,20 +216,6 @@ getOrders() {
 	else
 		return 1
 	fi
-}
-
-resolve_node_num(){ #deal_id
-	sonmcli deal status $1 --expand --out json | jq '.bid.tag' | tr -d '"' | base64 --decode | tr -d '\0' >num.txt
-	node_num=$( cat num.txt | grep -o '[0-9]*' )
-	rm num.txt
-}
-
-resolve_ntag(){ #deal_id
-
-	retry sonmcli deal status $1 --expand --out json | jq '.bid.tag' | tr -d '"' | base64 --decode | tr -d '\0' > num.txt
-	ntag=$( cat num.txt )  
-	echo "$ntag"
-	rm num.txt
 }
 
 blacklist() { # dealid #file
@@ -133,7 +231,7 @@ blacklist() { # dealid #file
 }
 
 startTaskOnDeal() { # dealid filename
-	check=$(retry "$sonmcli" task start $1 $2 --out json | jq '.id' | sed -e 's/"//g' | grep -o '[0-9]*')
+	check=$(retry "$sonmcli" task start $1 $2 --timeout=2m --out json | jq '.id' | sed -e 's/"//g' | grep -o '[0-9]*')
 	
 	if [ -z "$check" ]; 
 		then			
@@ -155,73 +253,6 @@ get_time() { #dealid taskid
 	time=$($sonmcli task status $1 $2 --out json | jq '.uptime' | sed -e 's/"//g' )
 	time=$(($time/1000000000))
 }
-
-
-check_deals() {
-	ch_d=$("$sonmcli" deal list | grep "No deals found")
-	ch_o=$("$sonmcli" order list | grep "No orders found")
-	if [ ! -z "$ch_o" ] && [ ! -z "$ch_d" ];
-	then
-		echo "$(datelog)" "Cluster finished all tasks"
-		exit
-
-	fi
-	if [ ! -z "$ch_d" ] && [ -z "$ch_o" ]; then
-		echo "$(datelog)" "Waiting for deals..."
-			watch
-	fi
-	if [ -z "$ch_d" ]; then
-		deal_mon
-	fi
-}
-
-
-deal_mon() { 
-	for x in $("$sonmcli" deal list --out json | jq -r '.deals[].id' | sort -u); 
-		do
-			dealid=$x
-			resolve_node_num $dealid
-			resolve_ntag $dealid
-			echo "$(datelog)" "Checking Deal $dealid - Node $node_num"
-			tasks=$(retry "$sonmcli" task list $dealid --timeout=2m | grep "No active tasks" )
-			if [ -z "$tasks" ]; 
-
-			then
-				taskid=$( $sonmcli task list $dealid --timeout=2m --out json | jq 'to_entries[] | '.key'' |tr -d '"')
-				status=$( sonmcli task status $dealid $taskid --timeout=2m --out json | jq '.status' | tr -d '"')
-				resolve_node_num $dealid
-				case $status in
-					SPOOLING)
-						echo "$(datelog)" "Task $taskid on deal $dealid (Node $node_num) is uploading..."
-					;;
-					RUNNING)
-						get_time $dealid $taskid
-						echo "$(datelog)" "Task $taskid on deal $dealid (Node $node_num) is running. Uptime is $time seconds"
-					;;
-					BROKEN|FINISHED)
-						get_time $dealid $taskid
-						if [ "$time" -gt "$eta" ]; 
-						then
-							echo "$(datelog)" "Task $taskid on deal $dealid (Node $node_num) is finished. Uptime is $time seconds"
-							echo "$(datelog)" "Task $taskid on deal $dealid (Node $node_num) success. Fetching log, shutting down node..."
-							retry "$sonmcli" task logs "$dealid" "$taskid" > out/$ntag.log
-							echo "$(datelog)" "Closing deal $dealid..."
-							retry closeDeal $dealid
-						else
-							blacklist $dealid
-						fi
-					;;
-				esac
-			else
-				echo "Starting task on node $node_num..."
-				taskfile="out/tasks/$ntag.yaml"
-				retry startTaskOnDeal $dealid $taskfile		
-			fi
-		done
-	watch		
-}
-
-
 
 valid_ip() {
 	local ip=$1
@@ -275,15 +306,7 @@ getIPofRunningTask() { # dealid
 }
 
 closeAllDeals() {
-	deals=($(getDeals))
-	if [ ! -z $deals ]; then
-		echo "$(datelog)" "Closing ${#deals[@]} deal(s)"
-		for x in "${deals[@]}"; do
-			closeDeal $x
-		done
-	else
-		echo "$(datelog)" "no deals to close"
-	fi
+	retry "$sonmcli" deal purge --timeout=2m
 }
 
 getRunningTasksByDeal() {
@@ -318,7 +341,7 @@ usage() {
 
 watch() {
 	echo "$(datelog)" "Watching cluster..."
-	check_deals	
+	deal_manager	
 }
 
 while [ "$1" != "" ]; do
