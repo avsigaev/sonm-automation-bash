@@ -80,7 +80,7 @@ retry() {
 	local max=3
 	local delay=5
 	while true; do
-		"$@" && continue 3 || {
+		"$@" && break || {
 			if [[ $n -lt $max ]]; then
 				((n++))
 				sleep $delay
