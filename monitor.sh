@@ -225,12 +225,14 @@ blacklist() { # dealid #file
 }
 
 startTaskOnDeal() { # dealid filename
+	set -x
 	check=$(retry "$sonmcli" task start $1 $2 --timeout=2m --out json | jq '.id' | tr -d '"')
 	
 	if [ -z "$check" ]; 
 		then			
 			blacklist $1 
 	fi
+	set +x
 }
 
 closeDeal() {
