@@ -1,5 +1,5 @@
 #cluster settings
-	numberofnodes="3" # cluster size
+	numberofnodes="2" # cluster size
 	tag="TEST" #cluster name, bid's and tasks will use it
 	eta=60 # Task estimated time of arrival, sec
 
@@ -15,7 +15,7 @@
 	sysbenchmulti="1000"
 	netdownload="10" # Mbits, integers only
 	netupload="10" # Mbits, integers only
-	price="0.03" # $ per hour
+	price="0.022" # $ per hour
 
 #network settings
 	overlay=false # Indicates whether overlay networking is required, boolean only

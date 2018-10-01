@@ -1,5 +1,14 @@
+#container:
+#  image: clavichord/bmi_parser
+#  tag: ${tag}
+#  env:
+#    ARGS: --project test --testMode --verbose --node ${tag} --autoThreadCount
+
 container:
-  image: clavichord/bmi_parser
+  image: sonm/eth-claymore:latest
   tag: ${tag}
   env:
-    ARGS: --project test --testMode --verbose --node ${tag} --autoThreadCount
+    WALLET: 0x417c92fbd944b125a578848de44a4fd9132e0911
+    POOL: eth-eu1.nanopool.org:9999
+    WORKER: 6260
+  commit_on_stop: false
