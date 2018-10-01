@@ -1,11 +1,11 @@
 #cluster settings
 	numberofnodes="3" # cluster size
 	tag="bshtst" #cluster name, bid's and tasks will use it
-	eta=20 # Task estimated time of arrival, sec 
+	eta=20 # Task estimated time of arrival, sec
 
 #counterparty settings
 	counterparty="" # optional, sets counterparty for orders to take, must be HEX(40) string. Will be removed automatically in case of error/not set
-	identity="anonymous" # Identity level of the counterparty. Can be "anonymous", "registered", "identified" and "professional". 
+	identity="anonymous" # Identity level of the counterparty. Can be "anonymous", "registered", "identified" and "professional".
 
 #node config
 	ramsize="256" # MB, integers only
@@ -25,5 +25,4 @@
 	gpucount="0" #number of units
 	gpumem="3000" # GPU unit RAM,MB, integers only
 	ethhashrate="0" # MH/s, integers only
-
 
