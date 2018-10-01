@@ -93,17 +93,11 @@ retry() {
 }
 
 resolve_node_num(){ #deal_id
-	$sonmcli deal status $1 --expand --out json | jq '.bid.tag' | tr -d '"' | base64 --decode | tr -d '\0' >num.txt
-	node_num=$( cat num.txt | grep -o '[0-9]*' )
-	rm num.txt
+	node_num=$($sonmcli deal status $1 --expand --out json | jq '.bid.tag' | tr -d '"' | base64 --decode | tr -d '\0' | grep -o '[0-9]*')
 }
 
 resolve_ntag(){ #deal_id
-
-	$sonmcli deal status $1 --expand --out json | jq '.bid.tag' | tr -d '"' | base64 --decode | tr -d '\0' > num.txt
-	ntag=$( cat num.txt )  
-	
-	rm num.txt
+	ntag=$($sonmcli deal status $1 --expand --out json | jq '.bid.tag' | tr -d '"' | base64 --decode | tr -d '\0')
 }
 
 check_state()
