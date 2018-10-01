@@ -214,7 +214,7 @@ getOrders() {
 
 blacklist() { # dealid #file
 		echo "$(datelog)" "Failed to start task on deal $1. Closing deal and blacklisting counterparty worker's address..."
-		resolve_node_num
+		resolve_node_num $1
 		retry sonmcli deal close $1 --blacklist worker
 		echo "$(datelog)" "Node $node_num failure, new order will be created..."
 		resolve_ntag $1
