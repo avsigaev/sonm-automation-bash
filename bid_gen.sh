@@ -107,6 +107,7 @@ generateBidFile() { # tag ramsize storagesize cpucores sysbenchsingle sysbenchmu
 			-e "s/\${identity}/$identity/" \
 bid.yaml.template >out/orders/$ntag.yaml && echo "out/orders/$ntag.yaml"
 		sed -i "s|counterparty: error||g" out/orders/$ntag.yaml
+		chmod +x out/orders/$ntag.yaml
 	fi
 }
 
@@ -116,7 +117,7 @@ task_gen() { #tag
 		cp task.yaml.template out/tasks/$ntag.yaml
 		sed -i "s/\${tag}/$ntag/g" out/tasks/$ntag.yaml
 		sed -i "s/\${env_tag}/$ntag/g" out/tasks/$ntag.yaml
-		
+		chmod +x out/tasks/$ntag.yaml		
 	fi
 }
 
