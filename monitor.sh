@@ -78,10 +78,11 @@ datelog() {
 retry() {
 	local n=1
 	local max=3
-	local delay=5
+	local delay=1
 	while true; do
-		"$@" && break || {
+		echo "$@" && $@ > out.txt && cat out.txt && break || {
 			if [[ $n -lt $max ]]; then
+				cat out.txt && rm out.txt 
 				((n++))
 				sleep $delay
 			else
@@ -225,7 +226,7 @@ blacklist() { # dealid #file
 }
 
 startTaskOnDeal() { # dealid filename
-	check=$(retry "$sonmcli" task start $1 $2 --timeout=2m --out json | jq '.id' | sed -e 's/"//g' | grep -o '[0-9]*')
+	check=$(retry "$sonmcli" task start $1 $2 --timeout=2m --out json | jq '.id' | tr -d '"' | grep -o '[0-9]*')
 	
 	if [ -z "$check" ]; 
 		then			
@@ -364,6 +365,10 @@ while [ "$1" != "" ]; do
 		stopAllRunningTasks
 		exit
 		;;
+	retry)
+		retry $2
+		exit
+		;;	
 	help | *)
 		usage
 		exit 1
