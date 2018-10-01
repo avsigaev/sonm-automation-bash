@@ -80,9 +80,8 @@ retry() {
 	local max=3
 	local delay=1
 	while true; do
-		echo "$@" && $@ > out/out.txt && cat out/out.txt && break || {
-			if [[ $n -lt $max ]]; then
-				cat out/out.txt
+		echo "$@" && echo $($@) && break || {
+			if [[ $n -lt $max ]]; then				
 				((n++))
 				sleep $delay
 			else
