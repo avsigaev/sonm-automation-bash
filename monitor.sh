@@ -165,7 +165,7 @@ task_manager() #deal_id #task_id
 						echo "$(datelog)" "Closing deal $deal_id..."
 						retry closeDeal $deal_id 
 						state[$node_num]="1"
-						sleep 10
+						#sleep 10
 					else
 						echo "$(datelog)" "Task has failed/stopped ($time seconds) on deal $1 before ETA. Closing deal and blacklisting counterparty worker's address..."
 						"$sonmcli" task logs "$deal_id" "$task_id" --tail 1000000 > out/fail_$ntag-deal-$deal_id.log
