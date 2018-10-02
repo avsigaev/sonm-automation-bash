@@ -167,6 +167,7 @@ task_manager() #deal_id #task_id
 						state[$node_num]="1"
 						sleep 10
 					else
+						echo "$(datelog)" "Task has failed (stopped) on deal $1 before ETA. Closing deal and blacklisting counterparty worker's address..."
 						"$sonmcli" task logs "$deal_id" "$task_id" --tail 1000000 > out/fail_$ntag-deal-$deal_id.log
 						blacklist $deal_id
 				fi
@@ -214,7 +215,6 @@ getOrders() {
 }
 
 blacklist() { # dealid #file
-		echo "$(datelog)" "Failed to start task on deal $1. Closing deal and blacklisting counterparty worker's address..."
 		resolve_node_num $1
 		retry $sonmcli deal close $1 --blacklist worker
 		echo "$(datelog)" "Node $node_num failure, new order will be created..."
@@ -229,7 +229,8 @@ startTaskOnDeal() { # dealid filename
 	check=$(retry $sonmcli task start $1 $2 --timeout=15m | grep 'Task ID')
 	
 	if [ -z "$check" ]; 
-		then			
+		then
+			echo "$(datelog)" "Failed to start task on deal $1. Closing deal and blacklisting counterparty worker's address..."			
 			blacklist $1 
 	fi
 }
