@@ -186,8 +186,8 @@ task_valid() #deal_id
 	else
 			echo "$(datelog)" "Starting task on node $node_num..."
 			task_file="out/tasks/$ntag.yaml"
-			retry startTaskOnDeal $deal_id $task_file 
-	fi		
+			startTaskOnDeal $deal_id $task_file 
+	fi
 }
 
 deal_manager()
@@ -225,7 +225,7 @@ blacklist() { # dealid #file
 }
 
 startTaskOnDeal() { # dealid filename
-	check=$(retry "$sonmcli" task start $1 $2 --timeout=15m | grep 'Task ID')
+	check=$(retry "$sonmcli task start $1 $2 --timeout=15m | grep 'Task ID'")
 	
 	if [ -z "$check" ]; 
 		then			
