@@ -227,7 +227,7 @@ blacklist() { # dealid #file
 startTaskOnDeal() { # dealid filename
 	check=$(grep 'networkIDs' <<< $(retry "$sonmcli" task start $1 $2 --timeout=2m --out json))
 	
-	if [ -z "$check" ]; 
+	if [ ! -z "$check" ]; 
 		then			
 			blacklist $1 
 	fi
