@@ -225,7 +225,7 @@ blacklist() { # dealid #file
 }
 
 startTaskOnDeal() { # dealid filename
-	check=$(retry "$sonmcli" task start $1 $2 | grep 'Task ID' &> out/log.txt)
+	check=$(retry "$sonmcli" task start $1 $2 --timeout=15m | grep 'Task ID' &> out/log.txt)
 	
 	if [ -z "$check" ]; 
 		then			
