@@ -163,7 +163,7 @@ task_manager() #deal_id #task_id
 						echo "$(datelog)" "Task $task_id on deal $deal_id (Node $node_num) success. Fetching log, shutting down node..."
 						"$sonmcli" task logs "$deal_id" "$task_id" --tail 1000000 > out/$ntag.log
 						echo "$(datelog)" "Closing deal $deal_id..."
-						retry closeDeal $deal_id &> out/log.txt
+						retry closeDeal $deal_id 
 						state[$node_num]="1"
 						sleep 10
 					else
@@ -186,7 +186,7 @@ task_valid() #deal_id
 	else
 			echo "$(datelog)" "Starting task on node $node_num..."
 			task_file="out/tasks/$ntag.yaml"
-			retry startTaskOnDeal $deal_id $task_file &> out/log.txt
+			retry startTaskOnDeal $deal_id $task_file 
 	fi		
 }
 
@@ -203,7 +203,7 @@ deal_manager()
 	deal_manager
 }
 getOrders() {
-	if ordersJson=$(retry "$sonmcli" order list --out=json &> out/log.txt); then
+	if ordersJson=$(retry "$sonmcli" order list --out=json); then
 		if [ "$(jq '.orders' <<<$ordersJson)" != "null" ]; then
 			jq -r '.orders[].id' <<<$ordersJson | tr ' ' '\n' | sort -u | tr '\n' ' '
 		fi
@@ -215,7 +215,7 @@ getOrders() {
 blacklist() { # dealid #file
 		echo "$(datelog)" "Failed to start task on deal $1. Closing deal and blacklisting counterparty worker's address..."
 		resolve_node_num $1
-		retry sonmcli deal close $1 --blacklist worker &> out/log.txt
+		retry sonmcli deal close $1 --blacklist worker
 		echo "$(datelog)" "Node $node_num failure, new order will be created..."
 		resolve_ntag $1
 		bidfile="out/orders/$ntag.yaml"
@@ -225,7 +225,7 @@ blacklist() { # dealid #file
 }
 
 startTaskOnDeal() { # dealid filename
-	check=$(retry "$sonmcli" task start $1 $2 --timeout=15m | grep 'Task ID' &> out/log.txt)
+	check=$(retry "$sonmcli" task start $1 $2 --timeout=15m | grep 'Task ID')
 	
 	if [ -z "$check" ]; 
 		then			
@@ -300,7 +300,7 @@ getIPofRunningTask() { # dealid
 }
 
 closeAllDeals() {
-	retry "$sonmcli" deal purge --timeout=2m &> out/log.txt
+	retry "$sonmcli" deal purge --timeout=2m
 }
 
 getRunningTasksByDeal() {
