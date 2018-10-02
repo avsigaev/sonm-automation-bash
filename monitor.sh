@@ -225,7 +225,7 @@ blacklist() { # dealid #file
 }
 
 startTaskOnDeal() { # dealid filename
-	check=$(retry "$sonmcli" task start $1 $2 --out json | jq '.id' | sed -e 's/"//g' | grep -o '[0-9]*')
+	check=$(retry "$sonmcli" task start $1 $2 --out json | grep 'Task ID')
 	
 	if [ -z "$check" ]; 
 		then			
