@@ -161,12 +161,13 @@ task_manager() #deal_id #task_id
 					then
 						echo "$(datelog)" "Task $task_id on deal $deal_id (Node $node_num) is finished. Uptime is $time seconds"
 						echo "$(datelog)" "Task $task_id on deal $deal_id (Node $node_num) success. Fetching log, shutting down node..."
-						"$sonmcli" task logs "$deal_id" "$task_id" --tail 1000000 > out/$ntag.log
+						"$sonmcli" task logs "$deal_id" "$task_id" --tail 1000000 > out/success_$ntag-deal-$deal_id.log
 						echo "$(datelog)" "Closing deal $deal_id..."
 						retry closeDeal $deal_id 
 						state[$node_num]="1"
 						sleep 10
 					else
+						"$sonmcli" task logs "$deal_id" "$task_id" --tail 1000000 > out/fail_$ntag-deal-$deal_id.log
 						blacklist $deal_id
 				fi
 			;;
