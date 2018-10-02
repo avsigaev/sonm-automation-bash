@@ -161,12 +161,14 @@ task_manager() #deal_id #task_id
 					then
 						echo "$(datelog)" "Task $task_id on deal $deal_id (Node $node_num) is finished. Uptime is $time seconds"
 						echo "$(datelog)" "Task $task_id on deal $deal_id (Node $node_num) success. Fetching log, shutting down node..."
-						"$sonmcli" task logs "$deal_id" "$task_id" --tail 1000000 > out/$ntag.log
+						"$sonmcli" task logs "$deal_id" "$task_id" --tail 1000000 > out/success_$ntag-deal-$deal_id.log
 						echo "$(datelog)" "Closing deal $deal_id..."
 						retry closeDeal $deal_id 
 						state[$node_num]="1"
 						sleep 10
 					else
+						echo "$(datelog)" "Task has failed/stopped ($time seconds) on deal $1 before ETA. Closing deal and blacklisting counterparty worker's address..."
+						"$sonmcli" task logs "$deal_id" "$task_id" --tail 1000000 > out/fail_$ntag-deal-$deal_id.log
 						blacklist $deal_id
 				fi
 			;;
@@ -186,8 +188,8 @@ task_valid() #deal_id
 	else
 			echo "$(datelog)" "Starting task on node $node_num..."
 			task_file="out/tasks/$ntag.yaml"
-			retry startTaskOnDeal $deal_id $task_file 
-	fi		
+			startTaskOnDeal $deal_id $task_file 
+	fi
 }
 
 deal_manager()
@@ -213,9 +215,8 @@ getOrders() {
 }
 
 blacklist() { # dealid #file
-		echo "$(datelog)" "Failed to start task on deal $1. Closing deal and blacklisting counterparty worker's address..."
 		resolve_node_num $1
-		retry sonmcli deal close $1 --blacklist worker
+		retry $sonmcli deal close $1 --blacklist worker
 		echo "$(datelog)" "Node $node_num failure, new order will be created..."
 		resolve_ntag $1
 		bidfile="out/orders/$ntag.yaml"
@@ -225,10 +226,11 @@ blacklist() { # dealid #file
 }
 
 startTaskOnDeal() { # dealid filename
-	check=$(retry "$sonmcli" task start $1 $2 --timeout=15m | grep 'Task ID')
+	check=$(retry $sonmcli task start $1 $2 --timeout=15m | grep 'Task ID')
 	
 	if [ -z "$check" ]; 
-		then			
+		then
+			echo "$(datelog)" "Failed to start task on deal $1. Closing deal and blacklisting counterparty worker's address..."			
 			blacklist $1 
 	fi
 }
